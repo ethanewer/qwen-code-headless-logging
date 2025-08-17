@@ -94,8 +94,12 @@ interface SaveMemoryParams {
   modified_content?: string;
 }
 
-function getGlobalMemoryFilePath(): string {
-  return path.join(homedir(), GEMINI_CONFIG_DIR, getCurrentGeminiMdFilename());
+function getLocalMemoryFilePath(): string {
+  return path.join(
+    process.cwd(),
+    GEMINI_CONFIG_DIR,
+    getCurrentGeminiMdFilename(),
+  );
 }
 
 /**
@@ -128,7 +132,7 @@ export class MemoryTool
   }
 
   getDescription(_params: SaveMemoryParams): string {
-    const memoryFilePath = getGlobalMemoryFilePath();
+    const memoryFilePath = getLocalMemoryFilePath();
     return `in ${tildeifyPath(memoryFilePath)}`;
   }
 
@@ -137,7 +141,7 @@ export class MemoryTool
    */
   private async readMemoryFileContent(): Promise<string> {
     try {
-      return await fs.readFile(getGlobalMemoryFilePath(), 'utf-8');
+      return await fs.readFile(getLocalMemoryFilePath(), 'utf-8');
     } catch (err) {
       const error = err as Error & { code?: string };
       if (!(error instanceof Error) || error.code !== 'ENOENT') throw err;
@@ -193,7 +197,7 @@ export class MemoryTool
     params: SaveMemoryParams,
     _abortSignal: AbortSignal,
   ): Promise<ToolEditConfirmationDetails | false> {
-    const memoryFilePath = getGlobalMemoryFilePath();
+    const memoryFilePath = getLocalMemoryFilePath();
     const allowlistKey = memoryFilePath;
 
     if (MemoryTool.allowlist.has(allowlistKey)) {
@@ -319,14 +323,10 @@ export class MemoryTool
     try {
       if (modified_by_user && modified_content !== undefined) {
         // User modified the content in external editor, write it directly
-        await fs.mkdir(path.dirname(getGlobalMemoryFilePath()), {
+        await fs.mkdir(path.dirname(getLocalMemoryFilePath()), {
           recursive: true,
         });
-        await fs.writeFile(
-          getGlobalMemoryFilePath(),
-          modified_content,
-          'utf-8',
-        );
+        await fs.writeFile(getLocalMemoryFilePath(), modified_content, 'utf-8');
         const successMessage = `Okay, I've updated the memory file with your modifications.`;
         return {
           llmContent: JSON.stringify({
@@ -337,15 +337,11 @@ export class MemoryTool
         };
       } else {
         // Use the normal memory entry logic
-        await MemoryTool.performAddMemoryEntry(
-          fact,
-          getGlobalMemoryFilePath(),
-          {
-            readFile: fs.readFile,
-            writeFile: fs.writeFile,
-            mkdir: fs.mkdir,
-          },
-        );
+        await MemoryTool.performAddMemoryEntry(fact, getLocalMemoryFilePath(), {
+          readFile: fs.readFile,
+          writeFile: fs.writeFile,
+          mkdir: fs.mkdir,
+        });
         const successMessage = `Okay, I've remembered that: "${fact}"`;
         return {
           llmContent: JSON.stringify({
@@ -373,7 +369,7 @@ export class MemoryTool
 
   getModifyContext(_abortSignal: AbortSignal): ModifyContext<SaveMemoryParams> {
     return {
-      getFilePath: (_params: SaveMemoryParams) => getGlobalMemoryFilePath(),
+      getFilePath: (_params: SaveMemoryParams) => getLocalMemoryFilePath(),
       getCurrentContent: async (_params: SaveMemoryParams): Promise<string> =>
         this.readMemoryFileContent(),
       getProposedContent: async (params: SaveMemoryParams): Promise<string> => {
