@@ -812,10 +812,10 @@ export class Config {
     registerCoreTool(GlobTool, this);
     registerCoreTool(EditTool, this);
     registerCoreTool(WriteFileTool, this);
-    registerCoreTool(WebFetchTool, this);
+    // registerCoreTool(WebFetchTool, this);
     registerCoreTool(ReadManyFilesTool, this);
     registerCoreTool(ShellTool, this);
-    registerCoreTool(MemoryTool);
+    // registerCoreTool(MemoryTool);
     // Conditionally register web search tool only if Tavily API key is set
     if (this.getTavilyApiKey()) {
       registerCoreTool(WebSearchTool, this);
