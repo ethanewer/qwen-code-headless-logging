@@ -14,6 +14,7 @@ import {
   GeminiEventType,
   ToolErrorType,
   parseAndFormatApiError,
+  getCoreSystemPrompt,
 } from '@qwen-code/qwen-code-core';
 import { Content, Part, FunctionCall } from '@google/genai';
 
@@ -46,6 +47,9 @@ export async function runNonInteractive(
       'All tools:',
       toolRegistry.getAllTools().map((tool) => tool.name),
     );
+
+    console.log(`<system>\n${getCoreSystemPrompt(config.getUserMemory())}\n</system>`);
+    console.log(`<user>\n${input}\n</user>`);
 
     const abortController = new AbortController();
     let currentMessages: Content[] = [
