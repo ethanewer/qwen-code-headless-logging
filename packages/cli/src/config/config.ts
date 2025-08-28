@@ -53,6 +53,7 @@ export interface CliArgs {
   sandbox: boolean | string | undefined;
   sandboxImage: string | undefined;
   debug: boolean | undefined;
+  verbose: boolean | undefined;
   prompt: string | undefined;
   promptInteractive: string | undefined;
   allFiles: boolean | undefined;
@@ -119,6 +120,11 @@ export async function parseArguments(): Promise<CliArgs> {
           alias: 'd',
           type: 'boolean',
           description: 'Run in debug mode?',
+          default: false,
+        })
+        .option('verbose', {
+          type: 'boolean',
+          description: 'Enable verbose logging for non-interactive mode (prints XML outputs).',
           default: false,
         })
         .option('all-files', {
