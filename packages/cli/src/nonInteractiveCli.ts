@@ -24,7 +24,7 @@ export async function runNonInteractive(
   config: Config,
   input: string,
   prompt_id: string,
-  verbose: boolean,
+  verbosity: number,
 ): Promise<void> {
   const consolePatcher = new ConsolePatcher({
     stderr: true,
@@ -44,13 +44,12 @@ export async function runNonInteractive(
     const geminiClient = config.getGeminiClient();
     const toolRegistry: ToolRegistry = await config.getToolRegistry();
 
-    if (verbose) {
-      console.log(
-        'All tools:',
-        toolRegistry.getAllTools().map((tool) => tool.name),
-      );
-
-      console.log(`<system>\n${getCoreSystemPrompt(config.getUserMemory())}\n</system>`);
+    if (verbosity >= 1) {
+      const toolsText = toolRegistry.getAllTools().map((tool) => tool.name).join('\n');
+      console.log(`<tools>\n${toolsText}\n</tools>`);
+      if (verbosity >= 2) {
+        console.log(`<system>\n${getCoreSystemPrompt(config.getUserMemory())}\n</system>`);
+      }
       console.log(`<user>\n${input}\n</user>`);
     }
 
@@ -94,7 +93,7 @@ export async function runNonInteractive(
             id: toolCallRequest.callId,
           };
           functionCalls.push(fc);
-          if (verbose) {
+          if (verbosity >= 1) {
             console.log('<tool_call>');
             console.log('name:', fc.name);
             console.log('args:', fc.args);
@@ -139,7 +138,7 @@ export async function runNonInteractive(
                 : resultDisplay.fileDiff
             ).trim();
 
-            if (verbose) {
+            if (verbosity >= 1) {
               console.log(
                 resultOutput.length > 64
                   ? `<tool_response>\n${resultOutput}\n</tool_response>`
