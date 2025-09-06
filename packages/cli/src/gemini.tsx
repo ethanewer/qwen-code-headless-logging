@@ -332,7 +332,13 @@ export async function main() {
     config,
   );
 
-  await runNonInteractive(nonInteractiveConfig, input, prompt_id);
+  await runNonInteractive(
+    nonInteractiveConfig,
+    input,
+    prompt_id,
+    argv.verbosity ?? 0,
+  );
+  
   process.exit(0);
 }
 

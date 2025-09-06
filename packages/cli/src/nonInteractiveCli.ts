@@ -12,6 +12,7 @@ import {
   isTelemetrySdkInitialized,
   GeminiEventType,
   parseAndFormatApiError,
+  getCoreSystemPrompt,
 } from '@qwen-code/qwen-code-core';
 import { Content, Part, FunctionCall } from '@google/genai';
 
@@ -21,6 +22,7 @@ export async function runNonInteractive(
   config: Config,
   input: string,
   prompt_id: string,
+  verbosity: number,
 ): Promise<void> {
   const consolePatcher = new ConsolePatcher({
     stderr: true,
@@ -38,6 +40,16 @@ export async function runNonInteractive(
     });
 
     const geminiClient = config.getGeminiClient();
+    const toolRegistry = await config.getToolRegistry();
+
+    if (verbosity >= 1) {
+      const toolsText = toolRegistry.getAllTools().map((tool) => tool.name).join('\n');
+      console.log(`<tools>\n${toolsText}\n</tools>`);
+      if (verbosity >= 2) {
+        console.log(`<system>\n${getCoreSystemPrompt(config.getUserMemory())}\n</system>`);
+      }
+      console.log(`<user>\n${input}\n</user>`);
+    }
 
     const abortController = new AbortController();
     let currentMessages: Content[] = [
@@ -79,6 +91,12 @@ export async function runNonInteractive(
             id: toolCallRequest.callId,
           };
           functionCalls.push(fc);
+          if (verbosity >= 1) {
+            console.log('<tool_call>');
+            console.log('name:', fc.name);
+            console.log('args:', fc.args);
+            console.log('</tool_call>');
+          }
         }
       }
 
@@ -105,6 +123,23 @@ export async function runNonInteractive(
             console.error(
               `Error executing tool ${fc.name}: ${toolResponse.resultDisplay || toolResponse.error.message}`,
             );
+          }
+
+          const resultDisplay = toolResponse.resultDisplay;
+          if (resultDisplay) {
+            const resultOutput = (
+              typeof resultDisplay === 'string'
+                ? resultDisplay
+                : resultDisplay.fileDiff
+            ).trim();
+
+            if (verbosity >= 1) {
+              console.log(
+                resultOutput.length > 64
+                  ? `<tool_response>\n${resultOutput}\n</tool_response>`
+                  : `<tool_response>${resultOutput}</tool_response>`,
+              );
+            }
           }
 
           if (toolResponse.responseParts) {
