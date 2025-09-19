@@ -130,20 +130,38 @@ export async function runNonInteractive(
           }
 
           const resultDisplay = toolResponse.resultDisplay;
-          if (resultDisplay) {
-            const resultOutput = (
-              typeof resultDisplay === 'string'
-                ? resultDisplay
-                : resultDisplay.fileDiff
-            ).trim();
+          let resultOutput: string | null = null;
 
-            if (verbosity >= 1) {
-              console.log(
-                resultOutput.length > 64
-                  ? `<tool_response>\n${resultOutput}\n</tool_response>`
-                  : `<tool_response>${resultOutput}</tool_response>`,
-              );
+          if (resultDisplay) {
+            if (typeof resultDisplay === 'string') {
+              resultOutput = resultDisplay;
+            } else if (
+              'type' in resultDisplay &&
+              resultDisplay.type === 'todo_list'
+            ) {
+              const todoText = resultDisplay.todos
+                .map((todo) => {
+                  const statusIcon = {
+                    pending: '○',
+                    in_progress: '◐',
+                    completed: '●',
+                  }[todo.status];
+                  return `${statusIcon} ${todo.content}`;
+                })
+                .join('\n');
+
+              resultOutput = todoText;
+            } else if ('fileDiff' in resultDisplay) {
+              resultOutput = resultDisplay.fileDiff;
             }
+          }
+
+          if (resultOutput && verbosity >= 1) {
+            console.log(
+              resultOutput.length > 64
+                ? `<tool_response>\n${resultOutput}\n</tool_response>`
+                : `<tool_response>${resultOutput}</tool_response>`,
+            );
           }
 
           if (toolResponse.responseParts) {
